@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 const app = require('./app');
-const keys = require('./config/keys');
+require('dotenv').config();
 
 //server setup
 const PORT = process.env.PORT || 8080;
 
 //DB Setup
 mongoose
-  .connect(keys.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     console.log('MongoDB connected successfully');
     // Start the server

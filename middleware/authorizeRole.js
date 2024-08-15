@@ -1,6 +1,8 @@
+//middleware that sets role base restriction to the routes.
+
 function authorizeRole(allowedRoles) {
   return (req, res, next) => {
-    const user = req.user; // Assume req.user is set after authentication middleware
+    const user = req.user;
 
     if (!user) {
       return res.status(401).json({ message: 'Unauthorized' });
