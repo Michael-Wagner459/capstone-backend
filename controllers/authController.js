@@ -6,14 +6,30 @@ const { sendVerificationEmail } = require('../utils/email');
 //register a new user
 exports.register = async (req, res) => {
   //items needed to create a new user
-  const { username, email, password } = req.body;
+  const { username, email, password, role } = req.body;
 
+  // Function to hash the email
+  function hashEmail(email) {
+    return crypto.createHash('sha256').update(email).digest('hex');
+  }
+
+  if (!username || !email || !password || !role) {
+    return res.status(400).send('Must provide all username, email, password, and role');
+  }
   try {
+    const hashedEmail = hashEmail(email);
+    const existingUser = await User.findOne({ hashedEmail });
+
+    if (existingUser) {
+      return res.status(409).send('Email is already in use');
+    }
     //makes new user and makes verification token
     const user = new User({
       username,
       email,
+      hashedEmail,
       password,
+      role,
       verificationToken: crypto.randomBytes(20).toString('hex'),
     });
     //saves user then sends out verification email

@@ -1,6 +1,6 @@
+require('dotenv').config({ path: './.env.local' });
 const mongoose = require('mongoose');
 const app = require('./app');
-require('dotenv').config();
 
 //server setup
 const PORT = process.env.PORT || 8080;

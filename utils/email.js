@@ -1,9 +1,10 @@
 const nodemailer = require('nodemailer');
 const UserModel = require('../models/user');
+require('dotenv').config({ path: './.env.local' });
 
 //sets up transporter for email with nodemailer. need valid email in env file
 const transporter = nodemailer.createTransport({
-  service: 'Gmail',
+  service: 'Hotmail',
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,

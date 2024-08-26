@@ -4,33 +4,31 @@ const crypto = require('crypto');
 const Schema = mongoose.Schema;
 
 // Encryption key and initialization vector (IV) should be stored securely.
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
-const IV_LENGTH = 16;
+const ENCRYPTION_KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
 
 //helper function to encrypt text
-const encrypt = (text) => {
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
-};
+function encrypt(text) {
+  const iv = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let encrypted = Buffer.concat([iv, cipher.update(text, 'utf8'), cipher.final()]);
+  return encrypted.toString('base64url');
+}
 
 // Helper function to decrypt text
-const decrypt = (text) => {
-  const textParts = text.split(':');
-  const iv = Buffer.from(textParts.shift(), 'hex');
-  const encryptedText = Buffer.from(textParts.join(':'), 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
-};
+function decrypt(ivCiphertextB64) {
+  const ivCiphertext = Buffer.from(ivCiphertextB64, 'base64url');
+  const iv = ivCiphertext.subarray(0, 16);
+  const ciphertext = ivCiphertext.subarray(16);
+  const cipher = crypto.createDecipheriv('aes-256-cbc', ENCRYPTION_KEY, iv);
+  let decrypted = Buffer.concat([cipher.update(ciphertext), cipher.final()]);
+  return decrypted.toString('utf-8');
+}
 
 //define User Model
 const UserSchema = new Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: true, unique: true },
+  hashedEmail: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   role: { type: String, enum: ['admin', 'mod', 'dm', 'player'], default: 'player' },
   isVerified: { type: Boolean, default: false },
@@ -48,7 +46,8 @@ UserSchema.pre('save', function (next) {
 });
 
 // Decrypt the email after retrieving
-UserSchema.methods.getDecryptedEmail = () => {
+UserSchema.methods.getDecryptedEmail = function () {
+  console.log(this.email);
   return decrypt(this.email);
 };
 

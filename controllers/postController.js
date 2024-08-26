@@ -1,4 +1,5 @@
 const Post = require('../models/post');
+const Comment = require('../models/comment');
 const roleCategoryMap = require('../config/roles');
 
 //creates Post
@@ -17,6 +18,17 @@ exports.createPost = async (req, res) => {
     //if required fields arent there sends back all required fields message
     if (!title || !content || !category) {
       return res.status(400).send('Please make sure all required fields are sent');
+    }
+
+    //gets user role from jwt token.
+    const userRole = req.user.role;
+
+    //users roll is indexed into the role category object and allowed roles is set to the roles that user can access
+    const allowedCategories = roleCategoryMap[userRole];
+
+    //if their role isnt found or they cannot view that role then message is sent back
+    if (!allowedCategories || !allowedCategories.includes(category)) {
+      return res.status(403).send('You do not have permission to add this post.');
     }
 
     //makes a new post
@@ -38,7 +50,7 @@ exports.createPost = async (req, res) => {
 exports.getPostsByCategory = async (req, res) => {
   try {
     //gets category or defaults to general since general can be viewed by everyone
-    const category = req.params;
+    const category = req.params.category;
     //setting up role based protection
     if (category !== 'general') {
       //safe handling for if user is not logged in
@@ -48,6 +60,7 @@ exports.getPostsByCategory = async (req, res) => {
 
       //gets user role from jwt token.
       const userRole = req.user.role;
+
       //users roll is indexed into the role category object and allowed roles is set to the roles that user can access
       const allowedCategories = roleCategoryMap[userRole];
 
@@ -115,6 +128,10 @@ exports.updatePost = async (req, res) => {
       return res.status(404).send('Post not found');
     }
 
+    if (!req.user) {
+      return res.status(401).send('You must be logged in to delete this.');
+    }
+
     //error handling to make sure that the user is the one requesting to change the post. Even admins and mods will not have ability to change posts only delete
     if (post.author.toString() !== req.user.id) {
       return res.status(403).send('Not authorized to update this post.');
@@ -142,14 +159,24 @@ exports.deletePost = async (req, res) => {
       return res.status(404).send('Post not found');
     }
 
+    if (!req.user) {
+      return res.status(401).send('You must be logged in to delete this.');
+    }
+
     //role protection. Makes sure either the user is deleting their post or that its a mod or admin.
-    if (post.author.toString() !== req.user.id || !['admin', 'mod'].includes(req.user.role)) {
+    if (post.author._id.toString() !== req.user.id && !['admin', 'mod'].includes(req.user.role)) {
       return res.status(403).send('Not authorized to delete this post.');
     }
     //deletes post
-    await post.remove();
+    await post.deleteOne();
+
     //deletes comments associated with that post
-    await Comment.deleteMany({ post: id });
+    const comments = await Comment.find({ post: id });
+
+    if (comments.length > 0) {
+      await Comment.deleteMany({ post: id });
+    }
+
     res.status(200).send('Post deleted successfully.');
   } catch (err) {
     res.status(500).json({ message: 'Error deleting post.', error: err });

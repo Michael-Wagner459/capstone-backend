@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-exports.authenticate = (res, res, next) => {
+exports.authenticate = (req, res, next) => {
   //gets beared token out of the headers
   const token = req.headers.authorization?.split(' ')[1];
 

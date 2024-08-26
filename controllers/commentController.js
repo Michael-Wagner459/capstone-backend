@@ -14,7 +14,7 @@ exports.createComment = async (req, res) => {
     }
 
     if (!req.user) {
-      res.status(403).send('Please log in to add a comment');
+      return res.status(403).send('Please log in to add a comment');
     }
     //gets user role from jwt token.
     const userRole = req.user.role;
@@ -53,6 +53,9 @@ exports.getCommentsByPost = async (req, res) => {
     }
     //this allows people not signed in to view the general posts comments
     if (post.category !== 'general') {
+      if (!req.user) {
+        return res.status(401).send('Please log in to access this content.');
+      }
       //gets user role from jwt token.
       const userRole = req.user.role;
       //users role is indexed into the role category object and allowed roles is set to the roles that user can access
@@ -75,6 +78,11 @@ exports.updateComment = async (req, res) => {
   try {
     const { id } = req.params;
     const { content } = req.body;
+    //makes sure user is logged in
+    if (!req.user) {
+      return res.status(401).send('Please log in to access this content.');
+    }
+
     //finds comment by id
     const comment = await Comment.findById(id);
     //error handling if no comment is found
@@ -88,6 +96,7 @@ exports.updateComment = async (req, res) => {
     //sets the comment content to the new content or defaults to the original content then saves it
     comment.content = content || comment.content;
     await comment.save();
+    res.status(200).json(comment);
   } catch (err) {
     res.status(500).json({ message: 'Error updating comment', error: err });
   }
@@ -96,6 +105,12 @@ exports.updateComment = async (req, res) => {
 exports.deleteComment = async (req, res) => {
   try {
     const { id } = req.params;
+
+    //makes sure user is logged in
+    if (!req.user) {
+      return res.status(401).send('Please log in to access this content.');
+    }
+
     //gets comment by Id
     const comment = await Comment.findById(id);
     //error handling if comment is not found
@@ -103,19 +118,17 @@ exports.deleteComment = async (req, res) => {
       return res.status(404).send('Comment not found');
     }
     //makes sure that either the user that made the comment or an admin or mod is deleting the comment
-    if (comment.author.toString() !== req.user.id || !['admin', 'mod'].includes(req.user.role)) {
+    if (comment.author.toString() !== req.user.id && !['admin', 'mod'].includes(req.user.role)) {
       return res.status(403).send('You are not authorized to delete this comment');
     }
     //deletes the comment
-    await comment.remove();
+    await comment.deleteOne();
 
-    //finds the post the comment was made under and then pulls the comment from the post.comments section and saves post
-    const post = await Post.findById(comment.post);
-    if (post) {
-      post.comments.pull(id);
-      await post.save();
-    }
-
+    // Remove the comment ID from the associated post's comments array
+    await Post.updateOne(
+      { _id: comment.post },
+      { $pull: { comments: id } } // Use $pull to remove the comment ID from the comments array
+    );
     res.status(200).send('Comment delete successful');
   } catch (err) {
     res.status(500).json({ message: 'Error deleting comment', error: err });
