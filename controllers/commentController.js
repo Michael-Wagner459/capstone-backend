@@ -37,7 +37,7 @@ exports.createComment = async (req, res) => {
 
     res.status(201).json(comment);
   } catch (err) {
-    res.status(500).json({ message: 'Error creating comment.', error: err });
+    res.status(422).json({ message: 'Error creating comment.', error: err });
   }
 };
 
@@ -70,7 +70,7 @@ exports.getCommentsByPost = async (req, res) => {
 
     res.status(200).json(comments);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching comments', error: err });
+    res.status(422).json({ message: 'Error fetching comments', error: err });
   }
 };
 
@@ -98,7 +98,7 @@ exports.updateComment = async (req, res) => {
     await comment.save();
     res.status(200).json(comment);
   } catch (err) {
-    res.status(500).json({ message: 'Error updating comment', error: err });
+    res.status(422).json({ message: 'Error updating comment', error: err });
   }
 };
 
@@ -131,6 +131,6 @@ exports.deleteComment = async (req, res) => {
     );
     res.status(200).send('Comment delete successful');
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting comment', error: err });
+    res.status(422).json({ message: 'Error deleting comment', error: err });
   }
 };

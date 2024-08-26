@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const crypto = require('crypto');
 const { sendVerificationEmail } = require('../utils/email');
+const { access } = require('fs');
 
 //register a new user
 exports.register = async (req, res) => {
@@ -38,7 +39,7 @@ exports.register = async (req, res) => {
 
     res.status(201).send('User registered, Please check your email to verify your account');
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    res.status(422).json({ message: 'Server error', error: err });
   }
 };
 
@@ -60,7 +61,7 @@ exports.verifyEmail = async (req, res) => {
 
     res.status(200).send('Email verified.');
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    res.status(422).json({ message: 'Server error', error: err });
   }
 };
 
@@ -83,17 +84,62 @@ exports.login = async (req, res) => {
     }
 
     //token that is given to the user when they sign in that has there id and role for role protected routes
-    const token = jwt.sign(
+    const accessToken = jwt.sign(
       {
         id: user._id,
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '5m' }
     );
 
-    res.json({ token });
+    //generate refresh token
+    const refreshToken = jwt.sign(
+      {
+        id: user._id,
+      },
+      process.env.JWT_REFRESH_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
+    res.json({ accessToken });
   } catch (err) {
-    res.status(500).json({ message: 'Server error', error: err });
+    res.status(422).json({ message: 'Server error', error: err });
   }
+};
+
+exports.refreshToken = async (req, res) => {
+  const refreshToken = req.body.token;
+
+  if (!refreshToken) return res.sendStatus(401);
+
+  try {
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.sendStatus(403);
+    }
+
+    const accessToken = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '5m' } // Short lifespan for access token
+    );
+
+    res.json({ accessToken });
+  } catch (err) {
+    return res.sendStatus(403);
+  }
+};
+
+exports.logout = async (req, res) => {
+  res.clearCookie('refreshToken');
+  res.status(200).send('Logged out successfully');
 };

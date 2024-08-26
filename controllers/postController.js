@@ -43,7 +43,7 @@ exports.createPost = async (req, res) => {
     await post.save();
     res.status(201).json(post);
   } catch (err) {
-    res.status(500).json({ message: 'Error creating post', error: err });
+    res.status(422).json({ message: 'Error creating post', error: err });
   }
 };
 //gets posts based on category. Doing this insteasd of a filter on the first since this is how they will be split up to view on the front end
@@ -75,7 +75,7 @@ exports.getPostsByCategory = async (req, res) => {
 
     res.status(200).json(posts);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching posts', error: err });
+    res.status(422).json({ message: 'Error fetching posts', error: err });
   }
 };
 
@@ -111,7 +111,7 @@ exports.getPostById = async (req, res) => {
 
     res.status(200).json(post);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching post', error: err });
+    res.status(422).json({ message: 'Error fetching post', error: err });
   }
 };
 //updates a post
@@ -144,7 +144,7 @@ exports.updatePost = async (req, res) => {
     await post.save();
     res.status(200).json(post);
   } catch (err) {
-    res.status(500).json({ message: 'Error updating post', error: err });
+    res.status(422).json({ message: 'Error updating post', error: err });
   }
 };
 
@@ -179,6 +179,6 @@ exports.deletePost = async (req, res) => {
 
     res.status(200).send('Post deleted successfully.');
   } catch (err) {
-    res.status(500).json({ message: 'Error deleting post.', error: err });
+    res.status(422).json({ message: 'Error deleting post.', error: err });
   }
 };
