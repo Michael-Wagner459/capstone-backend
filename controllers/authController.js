@@ -102,13 +102,23 @@ exports.login = async (req, res) => {
       { expiresIn: '7d' }
     );
 
+    user.refreshToken = refreshToken;
+    await user.save();
+
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
     });
 
-    res.json({ accessToken });
+    res.json({
+      accessToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        role: user.role,
+      },
+    });
   } catch (err) {
     res.status(422).json({ message: 'Server error', error: err });
   }
@@ -140,6 +150,22 @@ exports.refreshToken = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  res.clearCookie('refreshToken');
-  res.status(200).send('Logged out successfully');
+  const { refreshToken } = req.cookies;
+
+  try {
+    if (refreshToken) {
+      const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      const user = await User.findById(decoded.id);
+
+      if (user) {
+        user.refreshToken = undefined;
+        await user.save();
+      }
+    }
+
+    res.clearCookie('refreshToken');
+    res.status(200).send('Logged out successfully');
+  } catch (err) {
+    res.status(422).json({ messgae: 'Error logging out', error: err });
+  }
 };

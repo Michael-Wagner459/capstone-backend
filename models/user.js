@@ -33,6 +33,7 @@ const UserSchema = new Schema({
   role: { type: String, enum: ['admin', 'mod', 'dm', 'player'], default: 'player' },
   isVerified: { type: Boolean, default: false },
   verificationToken: { type: String },
+  refreshToken: { type: String },
   posts: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
 });
