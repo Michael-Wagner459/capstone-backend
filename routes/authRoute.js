@@ -8,5 +8,6 @@ router.get('/verify-email/:token', authController.verifyEmail);
 router.post('/login', authController.login);
 router.post('/token', authController.refreshToken);
 router.post('/logout', authController.logout);
+router.get('/validate-token', authController.validateToken);
 
 module.exports = router;

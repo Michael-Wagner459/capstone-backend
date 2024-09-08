@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 const crypto = require('crypto');
 const { sendVerificationEmail } = require('../utils/email');
-const { access } = require('fs');
 
 //register a new user
 exports.register = async (req, res) => {
@@ -69,7 +68,6 @@ exports.verifyEmail = async (req, res) => {
 exports.login = async (req, res) => {
   //username and password sent from the user
   const { username, password } = req.body;
-
   try {
     //finds user by username
     const user = await User.findOne({ username });
@@ -150,22 +148,55 @@ exports.refreshToken = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  const { refreshToken } = req.cookies;
+  const { refreshToken } = req.cookies?.refreshToken;
 
   try {
+    // Check if the refreshToken exists
     if (refreshToken) {
+      // Verify the refreshToken
       const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      // Find the user based on decoded token ID
       const user = await User.findById(decoded.id);
 
+      // If user found, clear their stored refreshToken
       if (user) {
         user.refreshToken = undefined;
         await user.save();
       }
     }
 
-    res.clearCookie('refreshToken');
+    // Clear the refreshToken cookie in both development and production environments
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+    });
+
     res.status(200).send('Logged out successfully');
   } catch (err) {
-    res.status(422).json({ messgae: 'Error logging out', error: err });
+    // Log detailed error message for better debugging
+    console.error('Logout error:', err);
+    res.status(422).json({ message: 'Error logging out', error: err });
   }
+};
+exports.validateToken = async (req, res) => {
+  const token = req.headers['authorization']?.split(' ')[1]; // Bearer Token
+  if (!token) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).json({ message: 'Invalid token' });
+    }
+    // Optionally fetch user details from the database here
+    res.json({
+      message: 'Token is valid',
+      user: {
+        id: decoded.id,
+        username: decoded.username,
+        role: decoded.role,
+      },
+    });
+  });
 };

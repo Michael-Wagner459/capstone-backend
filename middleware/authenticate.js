@@ -1,6 +1,11 @@
 const jwt = require('jsonwebtoken');
 
 exports.authenticate = (req, res, next) => {
+  // Check if the route is accessing general posts
+  if (req.path.includes('/category/general')) {
+    return next(); // Bypass authentication for general posts
+  }
+
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -12,11 +17,10 @@ exports.authenticate = (req, res, next) => {
   // Verify access token
   jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
-      // If the token is expired or invalid, return an error
-      if (err.name === 'TokenExpiredError') {
-        return res.status(401).send('Access token expired');
-      }
-      return res.status(403).send('Invalid token');
+      return res.status(401).json({
+        error: 'Invalid or expired token',
+        code: 'INVALID_TOKEN',
+      });
     }
 
     // Attach user to request object and proceed to the next middleware
