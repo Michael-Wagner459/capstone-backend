@@ -58,7 +58,7 @@ exports.verifyEmail = async (req, res) => {
     user.verificationToken = undefined;
     await user.save();
 
-    res.status(200).send('Email verified.');
+    res.redirect(process.env.FRONTEND_URL + '/email-verified');
   } catch (err) {
     res.status(422).json({ message: 'Server error', error: err });
   }
@@ -86,6 +86,7 @@ exports.login = async (req, res) => {
       {
         id: user._id,
         role: user.role,
+        username: user.username,
       },
       process.env.JWT_SECRET,
       { expiresIn: '5m' }
@@ -106,7 +107,7 @@ exports.login = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'Strict',
     });
 
     res.json({
@@ -123,27 +124,30 @@ exports.login = async (req, res) => {
 };
 
 exports.refreshToken = async (req, res) => {
-  const refreshToken = req.body.token;
+  const refreshToken = req.cookies.refreshToken; // Get refreshToken from cookies
 
-  if (!refreshToken) return res.sendStatus(401);
+  if (!refreshToken) return res.sendStatus(401); // Unauthorized if no token is found
 
   try {
+    // Verify the refresh token
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.id);
 
+    // Check if the user exists and the refresh token matches
     if (!user || user.refreshToken !== refreshToken) {
-      return res.sendStatus(403);
+      return res.sendStatus(403); // Forbidden if the token doesn't match or the user is invalid
     }
 
+    // Generate a new access token
     const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
+      { id: user._id, role: user.role, username: user.username },
       process.env.JWT_SECRET,
       { expiresIn: '5m' } // Short lifespan for access token
     );
 
-    res.json({ accessToken });
+    res.json({ accessToken }); // Send the new access token in response
   } catch (err) {
-    return res.sendStatus(403);
+    return res.sendStatus(403); // Forbidden if token verification fails
   }
 };
 
@@ -175,7 +179,6 @@ exports.logout = async (req, res) => {
     res.status(200).send('Logged out successfully');
   } catch (err) {
     // Log detailed error message for better debugging
-    console.error('Logout error:', err);
     res.status(422).json({ message: 'Error logging out', error: err });
   }
 };

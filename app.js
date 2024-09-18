@@ -8,7 +8,12 @@ const commentRoutes = require('./routes/commentsRoute');
 const app = express();
 
 //Middleware
-app.use(cors());
+const corsOptions = {
+  origin: process.env.FRONTEND_URL,
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

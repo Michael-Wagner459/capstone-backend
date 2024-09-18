@@ -29,7 +29,7 @@ const sendVerificationEmail = (user) => {
     if (err) {
       console.error('Error sending email', err);
     } else {
-      console.log('Verification email sent:', info.response);
+      console.log('Verification email sent:');
     }
   });
 };

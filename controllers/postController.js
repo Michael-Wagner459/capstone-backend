@@ -1,6 +1,7 @@
 const Post = require('../models/post');
 const Comment = require('../models/comment');
 const roleCategoryMap = require('../config/roles');
+const jwt = require('jsonwebtoken');
 
 //creates Post
 exports.createPost = async (req, res) => {
@@ -43,6 +44,7 @@ exports.createPost = async (req, res) => {
     await post.save();
     res.status(201).json(post);
   } catch (err) {
+    console.error('Error creating post:', err);
     res.status(422).json({ message: 'Error creating post', error: err });
   }
 };
@@ -75,6 +77,7 @@ exports.getPostsByCategory = async (req, res) => {
 
     res.status(200).json(posts);
   } catch (err) {
+    console.error('Error fetching posts:', err);
     res.status(422).json({ message: 'Error fetching posts', error: err });
   }
 };
@@ -83,27 +86,50 @@ exports.getPostsByCategory = async (req, res) => {
 exports.getPostById = async (req, res) => {
   try {
     const { id } = req.params;
-    //finds post by id
+    // Finds post by id
     const post = await Post.findById(id).populate('author', 'username');
-    //error handling if post does not exist
+    // Error handling if post does not exist
     if (!post) {
       return res.status(404).send('Post not found.');
     }
-    //gets category of post
+
+    // Gets category of post
     const category = post.category;
 
+    // If category is not 'general', perform authentication
     if (category !== 'general') {
-      //safe handling for if user is not logged in
+      const authHeader = req.headers.authorization;
+
+      if (!authHeader) {
+        return res.status(401).send('Authorization header missing');
+      }
+
+      const token = authHeader.split(' ')[1];
+
+      try {
+        // Verify access token synchronously
+        const user = jwt.verify(token, process.env.JWT_SECRET);
+        // Attach user to request object
+        req.user = user;
+      } catch (err) {
+        return res.status(401).json({
+          error: 'Invalid or expired token',
+          code: 'INVALID_TOKEN',
+        });
+      }
+
+      // Safe handling for if user is not logged in
       if (!req.user) {
         return res.status(401).send('You must be logged in to access this.');
       }
 
-      //gets user role from jwt token.
+      // Gets user role from JWT token
       const userRole = req.user.role;
-      //users roll is indexed into the role category object and allowed roles is set to the roles that user can access
+
+      // User's role is indexed into the role category object and allowed roles is set to the roles that user can access
       const allowedCategories = roleCategoryMap[userRole];
 
-      //if their role isnt found or they cannot view that role then message is sent back
+      // If their role isn't found or they cannot view that role then message is sent back
       if (!allowedCategories || !allowedCategories.includes(category)) {
         return res.status(403).send('You do not have permission to view this.');
       }
@@ -111,7 +137,10 @@ exports.getPostById = async (req, res) => {
 
     res.status(200).json(post);
   } catch (err) {
-    res.status(422).json({ message: 'Error fetching post', error: err });
+    console.error('Error fetching post:', err);
+    if (!res.headersSent) {
+      res.status(422).json({ message: 'Error fetching post', error: err });
+    }
   }
 };
 //updates a post
@@ -137,13 +166,15 @@ exports.updatePost = async (req, res) => {
       return res.status(403).send('Not authorized to update this post.');
     }
 
-    //if required fields arent entered it will default back to what it was before
-    post.title = title || post.title;
-    post.content = content || post.content;
+    post.title = title;
+    post.content = content;
     //saves post
     await post.save();
+    await post.populate('author');
+
     res.status(200).json(post);
   } catch (err) {
+    console.error('Error updating post:', err);
     res.status(422).json({ message: 'Error updating post', error: err });
   }
 };
@@ -179,6 +210,7 @@ exports.deletePost = async (req, res) => {
 
     res.status(200).send('Post deleted successfully.');
   } catch (err) {
+    console.error('Error deleting post:', err);
     res.status(422).json({ message: 'Error deleting post.', error: err });
   }
 };

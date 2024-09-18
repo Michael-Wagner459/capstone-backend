@@ -9,7 +9,7 @@ const { authenticate } = require('../middleware/authenticate');
 router.get('/category/:category', authenticate, postController.getPostsByCategory);
 
 //get a single post by id
-router.get('/:id', authenticate, postController.getPostById);
+router.get('/:id', postController.getPostById);
 
 //create post
 router.post('/', authenticate, postController.createPost);

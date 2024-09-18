@@ -6,7 +6,7 @@ const { authenticate } = require('../middleware/authenticate');
 //routes for comments
 
 //get comments by postID
-router.get('/post/:postId', authenticate, commentController.getCommentsByPost);
+router.get('/post/:postId', commentController.getCommentsByPost);
 
 //create a new comment
 router.post('/', authenticate, commentController.createComment);
