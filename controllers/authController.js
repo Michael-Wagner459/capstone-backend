@@ -107,7 +107,8 @@ exports.login = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
+      sameSite: 'strict',
+      domain: '.tabletop-tracker.com',
     });
 
     res.json({
@@ -167,14 +168,15 @@ exports.logout = async (req, res) => {
         user.refreshToken = undefined;
         await user.save();
       }
-    }
 
-    // Clear the refreshToken cookie in both development and production environments
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'none',
-    });
+      // Clear the refreshToken cookie in both development and production environments
+      res.clearCookie('refreshToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        domain: '.tabletop-tracker.com',
+      });
+    }
 
     res.status(200).send('Logged out successfully');
   } catch (err) {
