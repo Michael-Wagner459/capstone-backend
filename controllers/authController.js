@@ -154,7 +154,7 @@ exports.refreshToken = async (req, res) => {
 
 exports.logout = async (req, res) => {
   const { refreshToken } = req.cookies?.refreshToken;
-
+  console.log('has cookie');
   try {
     // Check if the refreshToken exists
     if (refreshToken) {
@@ -170,6 +170,7 @@ exports.logout = async (req, res) => {
       }
 
       // Clear the refreshToken cookie in both development and production environments
+      console.log('tries to clear cookie');
       res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
