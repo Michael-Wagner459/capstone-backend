@@ -108,7 +108,7 @@ exports.login = async (req, res) => {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      domain: '.tabletop-tracker.com',
+      domain: 'tabletop-tracker.com',
     });
 
     res.json({
@@ -174,7 +174,7 @@ exports.logout = async (req, res) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'strict',
-        domain: '.tabletop-tracker.com',
+        domain: 'tabletop-tracker.com',
       });
     }
 
