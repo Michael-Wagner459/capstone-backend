@@ -107,7 +107,7 @@ exports.login = async (req, res) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: 'none',
       domain: 'tabletop-tracker.com',
     });
 
@@ -174,7 +174,7 @@ exports.logout = async (req, res) => {
       res.clearCookie('refreshToken', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'none',
         domain: 'tabletop-tracker.com',
       });
     }
